@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KMeans Result</title>
+  </head>
+  <body>
+    <h2>Cluster: {{ cluster }}</h2>
+    <!-- Add logic to display recommended videos based on the cluster -->
+    {% for table in tables %} 
+      {{titles[loop.index]}} {{ table|safe }} 
+    {% endfor%}
+  </body>
+</html>
