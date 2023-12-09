@@ -43,14 +43,13 @@ vectorizer = TfidfVectorizer(lowercase=True, stop_words='english',
 vectorizer.fit(clustered_data['clean_title'])
 
 
-# Return top `n` video titles in the same cluster
+def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
+    # Return top `n` video titles in the same cluster
 
-
-def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> List[str]:
     # Define a dataframe to store the recommended videos
-    recommended_videos = pd.DataFrame(columns=['channelTitle', 'title'])
-    # !USING THE BELOW CODE FOR TESTING
-    # recommended_videos = pd.DataFrame(columns=['channelTitle', 'title', 'viewCount'])
+    recommended_videos = pd.DataFrame(
+        columns=['channelTitle', 'title', 'video_id']
+    )
 
     # Define a set to store the channels that have been recommended
     set_of_channels = set()
@@ -64,18 +63,15 @@ def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> List[str]:
     for i, video in video_in_cluster.iterrows():
         channelTitle = video['channelTitle']
         videoTitle = video['title']
+        video_id = video['video_id']
 
         # If the channel has already been recommended, skip it
         if channelTitle in set_of_channels:
             continue
 
         # Otherwise, add it to the list of recommended channels
-        if len(recommended_videos.columns) == 2:
-            recommended_videos.loc[len(recommended_videos)] = [
-                channelTitle, videoTitle]
-        else:  # !USING THE BELOW CODE FOR TESTING
-            recommended_videos.loc[len(recommended_videos)] = [
-                channelTitle, videoTitle, video['viewCount']]
+        recommended_videos.loc[len(recommended_videos)] \
+            = [channelTitle, videoTitle, video_id]
 
         # Add the channel to the set
         set_of_channels.add(channelTitle)
@@ -84,10 +80,35 @@ def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> List[str]:
         if len(recommended_videos) >= top_n:
             break
 
+    # Convert the `video_id` to a `URL`
+    recommended_videos['URL'] = recommended_videos['video_id']\
+        .apply(lambda x: f"https://www.youtube.com/watch?v={x}")
+    recommended_videos.drop(columns=['video_id'], inplace=True)
+
     return recommended_videos
 
 
+def _add_link(html_string: str) -> str:
+    # Reference: https://www.semrush.com/blog/html-link-code/
+    pattern = r'<td>(https://www.youtube.com/watch\?v=[a-zA-Z0-9_-]+)</td>'
+    replacement = r'<td><a href="\1">\1</a></td>'
+    return re.sub(pattern=pattern, repl=replacement,
+                  string=html_string)
+
+
+def _modify_html_template(html_string: str) -> str:
+    # Add links to the video URLs
+    html_string = _add_link(html_string)
+
+    # Reference: https://www.educative.io/answers/what-is-the-resub-function-in-python
+    pattern = r'<tr style="text-align: right;">'
+    replacement = r'<tr style="text-align: center;">'
+    return re.sub(pattern=pattern, repl=replacement,
+                  string=html_string)
+
+
 # ------------------------------ APP ------------------------------
+# Reference: https://stackoverflow.com/questions/52644035/how-to-show-a-pandas-dataframe-into-a-existing-flask-html-table
 app = Flask(__name__)
 
 
@@ -96,8 +117,8 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/predict', methods=['POST'])
-def predict():
+@app.route('/search', methods=['POST'])
+def search():
     if request.method == 'POST':
         text = request.form['text']
 
@@ -111,12 +132,29 @@ def predict():
 
         # Additional logic to recommend videos based on the cluster
         recommended_videos = _recommend_top_n_videos(cluster, top_n=5)
+        recommended_videos.index += 1
+        recommended_videos.columns = ['Channel', 'Video title', 'URL']
 
-        return render_template('result.html',
-                               tables=[recommended_videos.to_html(
-                                   classes='data')],
-                               titles=recommended_videos.columns.values)
+        # Set come variables for rendering the HTML template
+        page_name = 'index.html'
+        html_string_table = _modify_html_template(
+            # Reference: https://stackoverflow.com/questions/50807744/apply-css-class-to-pandas-dataframe-using-to-html
+            recommended_videos.to_html(classes='mystyle')
+        )
+
+        return render_template(
+            page_name,
+            tables=[html_string_table],
+            titles=recommended_videos.columns.to_numpy(),
+            index=False,
+            index_names=False,
+            justify="center",
+            bold_rows=True,
+            render_links=True,
+            encoding="utf-8"
+        )
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    print(">> Starting the Flask app...")
+    app.run(debug=True)

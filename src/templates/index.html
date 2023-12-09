@@ -1,15 +1,110 @@
+<!-- Reference: https://codepen.io/Mehto00/pen/RwPapgz?editors=1100 -->
+<style>
+  body{
+    padding-top: 40px;
+    justify-content: center;
+    text-align: center;
+    background-color: #e1eaf7;
+    width: 100%;
+    font-family: comic sans ms;
+  }
+  *::selection{
+    background-color: transparent;
+  }
+  *{
+    cursor: default;
+    box-sizing: border-box;
+  }
+  .heading{
+    font-size: 30px;
+    font-weight: bold;
+    color: #2a4ce8;
+    margin-bottom: 1.5rem;
+  }
+  .title{
+    display: block;
+    font-size: 26px;
+    margin-block-start: 0.83em;
+    margin-block-end: 0.83em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    font-weight: bold;
+    text-align: center;
+    color: #3656e9;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .searchInputWrapper {
+    position: relative;
+  }
+  .searchInput {
+    width: 320px;
+    height: 36px;
+    padding: 0 16px; 
+    border-radius: 32px;
+    transition: transform 0.1s ease-in-out;
+    background-color: #3a71ed;
+    border: 2px solid #2d4cf3;
+    position: relative;
+    bottom: 4px;
+  }
+  ::placeholder {
+    color: white;
+  }
+  /* hide the placeholder text on focus */
+  :focus::placeholder {
+    text-indent: -999px;
+  }
+  .searchInput:focus {
+    outline: none;
+    transform: scale(1.08);
+    transition: all 0.1s ease-in-out;
+    color: white;
+  }
+  .searchInputIcon {
+    color: #1d71eb;
+    transition: all 0.1s ease-in-out;
+    font-size: 26px !important;
+    margin-left: 14px;
+  }
+
+</style>
+
 <!DOCTYPE html>
 <html lang="en">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KMeans Web App</title>
+    <title>Youtube Video Recommendations Web App</title>
   </head>
+  <link rel="stylesheet" type="text/css" href="../static/styles/df_style.css"/>
   <body>
-    <form action="/predict" method="post">
-      <label for="text">Enter Text:</label>
-      <input type="text" name="text" required />
-      <button type="submit">Predict</button>
-    </form>
+   
+    <div class="container">
+      <div class="heading">What are you looking for?</div>
+      <form action="/search" method="post">
+        <div class="searchInputWrapper">
+          <input class="searchInput" name="text" 
+              placeholder="Focus here to search" required>
+            <i class="searchInputIcon fa fa-search"></i>
+          </input>
+        </div>
+      </form>
+    </div>
+
+    <!-- Add logic to display recommended videos based on the cluster -->
+    {% if tables %}
+      <div class="title">Recommended Videos</div>
+      {% for table in tables %} 
+          {{ table|safe }}
+      {% endfor %}
+    {% endif %}
+
   </body>
 </html>
