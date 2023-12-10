@@ -16,8 +16,8 @@ Group id: `02`
 - Demo:
   ![Demo Flask web application](./src/figures/flask_app_demo.png "Demo Flask web application")
 
-- Step 1: Move programming environment to root folder.
-- Step 2: Run your Flask application by executing the command in your terminal:
+- Step 1: Move your programming environment to root folder.
+- Step 2: Run Flask application by executing the command in your terminal:
 
 ```bash
 python .\src\app.py
