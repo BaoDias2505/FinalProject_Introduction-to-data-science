@@ -98,6 +98,13 @@
       </form>
     </div>
 
+    {% if tags %}
+      <div class="title">Recommended Tags</div>
+      {% for tag in tags %} 
+        {{ tag|safe }}
+      {% endfor %}
+    {% endif %}
+
     <!-- Add logic to display recommended videos based on the cluster -->
     {% if tables %}
       <div class="title">Recommended Videos</div>

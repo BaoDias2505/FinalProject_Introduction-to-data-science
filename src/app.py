@@ -32,15 +32,15 @@ def preprocess_text(text):
 
 
 # Read the data
-clustered_data = pd.read_csv("./data/processed/video_data_clustered.csv")
-clustered_data['clean_title'] = clustered_data['title'].apply(preprocess_text)
+clustered_df = pd.read_csv("./data/processed/video_data_clustered.csv")
+clustered_df['clean_title'] = clustered_df['title'].apply(preprocess_text)
 
 # Create a TF-IDF vectorizer to vectorize the text
 # Reference: https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html
 vectorizer = TfidfVectorizer(lowercase=True, stop_words='english',
-                             min_df=2,  # !ADD THIS LINE TO REDUCE THE VOCABULARY SIZE
+                             max_features=20_000,  # !reduce number of features
                              dtype=np.float32)
-vectorizer.fit(clustered_data['clean_title'])
+vectorizer.fit(clustered_df['clean_title'])
 
 
 def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
@@ -56,7 +56,7 @@ def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
 
     # Get all videos in the same cluster
     #   Then sort them by their views
-    video_in_cluster = clustered_data.query(f"cluster_id == {cluster_id}")\
+    video_in_cluster = clustered_df.query(f"cluster_id == {cluster_id}")\
         .sort_values(by='viewCount', ascending=False)
 
     # Iterate through each video in the cluster
@@ -86,6 +86,28 @@ def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
     recommended_videos.drop(columns=['video_id'], inplace=True)
 
     return recommended_videos
+
+
+def _recommend_top_n_tags(cluster_id, top_n: int = 10) -> np.ndarray:
+    print(f"Getting top {top_n} tags of cluster {cluster_id}...")
+    tags_in_cluster = clustered_df.query(f"cluster_id == {cluster_id}")
+    tags_in_cluster = \
+        tags_in_cluster.sort_values(by='viewCount', ascending=False,)[
+            'tags'].head(2*top_n)
+
+    # Create a dataframe to store the one-hot encoding of tags
+    one_hot_df = tags_in_cluster.str.get_dummies(sep='|')
+    if "(notag)" in one_hot_df.columns:
+        one_hot_df = one_hot_df.drop("(notag)", axis=1)
+    # Sum the one-hot encoding of tags
+    all_tags = one_hot_df.sum().sort_values(ascending=False).head(2*top_n)
+
+    # # Preprocess all tags
+    preprocessed_tags = pd.Series(all_tags.index).apply(preprocess_text)
+
+    # Get only unique tags
+    unique_tags = pd.unique(preprocessed_tags)
+    return unique_tags
 
 
 def _add_link(html_string: str) -> str:
@@ -135,6 +157,11 @@ def search():
         recommended_videos.index += 1
         recommended_videos.columns = ['Channel', 'Video title', 'URL']
 
+        # Additional logic to recommended tags based on the cluster
+        print("start")
+        recommended_tags = _recommend_top_n_tags(cluster, top_n=5)
+        print("end")
+
         # Set come variables for rendering the HTML template
         page_name = 'index.html'
         html_string_table = _modify_html_template(
@@ -146,6 +173,9 @@ def search():
             page_name,
             tables=[html_string_table],
             titles=recommended_videos.columns.to_numpy(),
+            # tags=[recommended_tags],
+            tags=["\"" + "\", \"".join(recommended_tags.tolist()) + "\""],
+
             index=False,
             index_names=False,
             justify="center",
