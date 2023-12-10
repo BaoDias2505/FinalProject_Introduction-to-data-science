@@ -31,6 +31,23 @@
     text-align: center;
     color: #3656e9;
   }
+  .tag{
+    display: inline-block;
+    font-size: 18px;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 16px;
+    background-color: #2e6aff;
+    color: white;
+    text-decoration: none;
+    transition: transform 0.1s ease-in-out;
+  }
+  .tag:hover {
+    outline: none;
+    transform: scale(1.05);
+    transition: all 0.1s ease-in-out;
+    background-color: #524fff;
+  }
 
   .container {
     display: flex;
@@ -100,7 +117,9 @@
     {% if tags %}
       <div class="title">Recommended Tags</div>
       {% for tag in tags %} 
-        {{ tag|safe }}
+        <div class="tag">
+          {{ tag|safe }}
+        </div>
       {% endfor %}
     {% endif %}
 

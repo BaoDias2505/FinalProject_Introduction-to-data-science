@@ -46,6 +46,9 @@ vectorizer.fit(clustered_df['clean_title'])
 def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
     # Return top `n` video titles in the same cluster
 
+    metric_to_sort: str = 'score'
+    threshold_for_shuffle: int = 10
+
     # Define a dataframe to store the recommended videos
     recommended_videos = pd.DataFrame(
         columns=['channelTitle', 'title', 'video_id']
@@ -57,28 +60,46 @@ def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
     # Get all videos in the same cluster
     #   Then sort them by their views
     video_in_cluster = clustered_df.query(f"cluster_id == {cluster_id}")\
-        .sort_values(by='viewCount', ascending=False)
+        .sort_values(by=metric_to_sort, ascending=False)
 
     # Iterate through each video in the cluster
-    for i, video in video_in_cluster.iterrows():
-        channelTitle = video['channelTitle']
-        videoTitle = video['title']
-        video_id = video['video_id']
+    def _get_n_videos_from_different_channel(video_df: pd.DataFrame,
+                                             n_videos: int) -> None:
+        n_completed = 0
+        for i, video in video_df.iterrows():
+            channelTitle = video['channelTitle']
+            videoTitle = video['title']
+            video_id = video['video_id']
 
-        # If the channel has already been recommended, skip it
-        if channelTitle in set_of_channels:
-            continue
+            # If the channel has already been recommended, skip it
+            if channelTitle in set_of_channels:
+                continue
 
-        # Otherwise, add it to the list of recommended channels
-        recommended_videos.loc[len(recommended_videos)] \
-            = [channelTitle, videoTitle, video_id]
+            # Otherwise, add it to the list of recommended channels
+            recommended_videos.loc[len(recommended_videos)] \
+                = [channelTitle, videoTitle, video_id]
 
-        # Add the channel to the set
-        set_of_channels.add(channelTitle)
+            # Add the channel to the set
+            set_of_channels.add(channelTitle)
 
-        # If we have enough channels, stop
-        if len(recommended_videos) >= top_n:
-            break
+            # If we have enough channels, stop
+            n_completed += 1
+            if n_completed >= n_videos:
+                return
+
+    if top_n >= threshold_for_shuffle:
+        # Get first half of the videos
+        first_half = top_n // 2
+        _get_n_videos_from_different_channel(video_df=video_in_cluster,
+                                             n_videos=first_half)
+        # Get second half of the videos -> randomly shuffle the videos
+        video_in_cluster = video_in_cluster.sample(frac=1)
+        second_half = top_n - first_half
+        _get_n_videos_from_different_channel(video_df=video_in_cluster,
+                                             n_videos=second_half)
+    else:
+        _get_n_videos_from_different_channel(video_df=video_in_cluster,
+                                             n_videos=top_n)
 
     # Convert the `video_id` to a `URL`
     recommended_videos['URL'] = recommended_videos['video_id']\
@@ -91,22 +112,25 @@ def _recommend_top_n_videos(cluster_id, top_n: int = 10) -> pd.DataFrame:
 def _recommend_top_n_tags(cluster_id, top_n: int = 10) -> np.ndarray:
     print(f"Getting top {top_n} tags of cluster {cluster_id}...")
     tags_in_cluster = clustered_df.query(f"cluster_id == {cluster_id}")
-    tags_in_cluster = \
-        tags_in_cluster.sort_values(by='viewCount', ascending=False,)[
-            'tags'].head(2*top_n)
+    tags_in_cluster = tags_in_cluster.sort_values(
+        by='viewCount', ascending=False
+    )['tags'].head(4*top_n)
 
     # Create a dataframe to store the one-hot encoding of tags
     one_hot_df = tags_in_cluster.str.get_dummies(sep='|')
     if "(notag)" in one_hot_df.columns:
         one_hot_df = one_hot_df.drop("(notag)", axis=1)
     # Sum the one-hot encoding of tags
-    all_tags = one_hot_df.sum().sort_values(ascending=False).head(2*top_n)
+    all_tags = one_hot_df.sum().sort_values(ascending=False).head(4*top_n)
 
-    # # Preprocess all tags
+    # Preprocess all tags
     preprocessed_tags = pd.Series(all_tags.index).apply(preprocess_text)
+    preprocessed_tags = preprocessed_tags[preprocessed_tags != ""]
 
     # Get only unique tags
     unique_tags = pd.unique(preprocessed_tags)
+    # Get some random tags
+    np.random.shuffle(unique_tags)
     return unique_tags[:top_n]
 
 
@@ -153,12 +177,15 @@ def search():
         cluster = my_best_model.predict(text_transformed)
 
         # Additional logic to recommend videos based on the cluster
-        recommended_videos = _recommend_top_n_videos(cluster, top_n=5)
+        recommended_videos = _recommend_top_n_videos(cluster, top_n=10)
         recommended_videos.index += 1
         recommended_videos.columns = ['Channel', 'Video title', 'URL']
 
         # Additional logic to recommended tags based on the cluster
         recommended_tags = _recommend_top_n_tags(cluster, top_n=5)
+        recommended_tags = [
+            "\"" + "\", \"".join(recommended_tags.tolist()) + "\""
+        ]
 
         # Set come variables for rendering the HTML template
         page_name = 'index.html'
@@ -170,8 +197,7 @@ def search():
         return render_template(
             page_name,
             tables=[html_string_table],
-            titles=recommended_videos.columns.to_numpy(),
-            tags=["\"" + "\", \"".join(recommended_tags.tolist()) + "\""],
+            tags=recommended_tags,
             index=False,
             index_names=False,
             justify="center",
