@@ -1,24 +1,26 @@
-# FinalProject_Introduction-to-data-science  
-## Group Information  
-Group id: `02`  
-  
-Member 01:  
-- Name: Võ Duy Anh  
-- Id: 21127221  
-- Email: vdanh21@clc.fitus.edu.vn  
+# FinalProject_Introduction-to-data-science
 
-Member 02:  
-- Name: Nguyễn Mậu Gia Bảo  
-- Id: 21127583    
-- Email: nmgbao21@clc.fitus.edu.vn  
+## Group Information
 
-Member 03:  
-- Name: Lê Mỹ Khánh Quỳnh  
-- Id: 21127681    
-- Email: lmkquynh21@clc.fitus.edu.vn  
-  
-Member 04:  
-- Name: Vũ Minh Phát  
-- Id: 21127739    
-- Email: vmphat21@clc.fitus.edu.vn  
+Group id: `02`
 
+| Name               | Student ID | Email                       |
+| ------------------ | ---------- | --------------------------- |
+| Võ Duy Anh         | 21127221   | vdanh21@clc.fitus.edu.vn    |
+| Nguyễn Mậu Gia Bảo | 21127583   | nmgbao21@clc.fitus.edu.vn   |
+| Lê Mỹ Khánh Quỳnh  | 21127681   | lmkquynh21@clc.fitus.edu.vn |
+| Vũ Minh Phát       | 21127739   | vmphat21@clc.fitus.edu.vn   |
+
+## How to run Flask web application?
+
+- Demo:
+  ![Demo Flask web application](./src/figures/flask_app_demo.png "Demo Flask web application")
+
+- Step 1: Move programming environment to root folder.
+- Step 2: Run your Flask application by executing the command in your terminal:
+
+```bash
+python .\src\app.py
+```
+
+- Step 3: Visit **`http://127.0.0.1:5000/`** in your web browser to interact with web application.
