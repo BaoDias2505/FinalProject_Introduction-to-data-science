@@ -107,7 +107,7 @@ def _recommend_top_n_tags(cluster_id, top_n: int = 10) -> np.ndarray:
 
     # Get only unique tags
     unique_tags = pd.unique(preprocessed_tags)
-    return unique_tags
+    return unique_tags[:top_n]
 
 
 def _add_link(html_string: str) -> str:
@@ -158,9 +158,7 @@ def search():
         recommended_videos.columns = ['Channel', 'Video title', 'URL']
 
         # Additional logic to recommended tags based on the cluster
-        print("start")
         recommended_tags = _recommend_top_n_tags(cluster, top_n=5)
-        print("end")
 
         # Set come variables for rendering the HTML template
         page_name = 'index.html'
@@ -173,9 +171,7 @@ def search():
             page_name,
             tables=[html_string_table],
             titles=recommended_videos.columns.to_numpy(),
-            # tags=[recommended_tags],
             tags=["\"" + "\", \"".join(recommended_tags.tolist()) + "\""],
-
             index=False,
             index_names=False,
             justify="center",

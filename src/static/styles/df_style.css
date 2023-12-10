@@ -16,7 +16,7 @@
 
 .mystyle td,
 th {
-  padding: 1px;
+  padding: 4px;
 }
 
 .mystyle tr:nth-child(even) {
